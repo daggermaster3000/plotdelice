@@ -12,6 +12,7 @@ violinplot_delice(df,x_group,y_variable,violin_width=violin_width,y_label=y_labe
 ```
 ![alt text](assets/image.png)
 ![alt text](assets/image1.png)
-- TODO
-[] Add more than the t-test
-[] Improve multilevel plotting
+# TODO
+- Add more than the t-test
+- Improve multilevel plotting
+- Refactor the code
