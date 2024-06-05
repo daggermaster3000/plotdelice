@@ -44,6 +44,7 @@ def plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width
     plt.yticks(fontsize=fontsize,weight=fw)
     return fig, axs
 
+
 def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
     ls = list(range(1, len(labels) + 1))
     combinations = [(ls[x], ls[x + y]) for y in reversed(ls) for x in range((len(ls) - y))]
@@ -78,10 +79,7 @@ def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
         level = len(significant_combinations) - i
         bar_height = (y_range * 0.2 * level) + top + 0.4
         bar_tips = bar_height - (y_range * 0.02)
-        axs.plot(
-            [x1, x1, x2, x2],
-            [bar_tips, bar_height, bar_height, bar_tips], lw=2, c='k'
-        )
+
         p = significant_combination[1]
         if p < 0.001:
             sig_symbol = '***'
@@ -92,7 +90,12 @@ def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
         else:
             sig_symbol = "ns"
         text_height = bar_height + (y_range * 0.01)
-        axs.text((x1 + x2) * 0.5, text_height, sig_symbol, ha='center', va='bottom', c='k', weight='bold',fontsize=fontsize/1.15)
+        if p<0.05:
+            axs.text((x1 + x2) * 0.5, text_height, sig_symbol, ha='center', va='bottom', c='k', weight='bold',fontsize=fontsize/1.15)
+            axs.plot(
+                [x1, x1, x2, x2],
+                [bar_tips, bar_height, bar_height, bar_tips], lw=2, c='k'
+            )
 
 def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,colors=None, xlabel=None,figsize=None,fontsize=20,fw='bold'):
     if y_label is None:
@@ -249,7 +252,12 @@ def multiplot_delice(df,x_group,x_variable,y_variable,violin_width=0.85,y_label=
     
     return fig,axs
 
-def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="PuRd", colors=None, bar_width=0.5, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2):
+def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="PuRd", colors=None, bar_width=0.5, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2,figsize=None,fontsize=20,scatter=None,fw='bold'):
+    
+    if figsize:
+        fig, axs = plt.subplots(figsize=figsize)
+    else:
+        fig, axs = plt.subplots()
     if y_label is None:
         y_label = y_variable
     if x_label is None:
@@ -263,36 +271,7 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
         color_dic = {cond: color for cond, color in zip(np.unique(df[x_group]), color_map)}
 
     labels = [i for i in color_dic]
-
-    # Plot settings
-    fig, axs = plt.subplots()
     colors = [i for i in color_dic.values()]
-
-    # Test every combination
-    # Check from the outside pairs of boxes inwards
-    ls = list(range(1, len(labels) + 1))
-    combinations = [(ls[x], ls[x + y]) for y in reversed(ls) for x in range((len(ls) - y))]
-    significant_combinations = []
-    for combination in combinations:
-        data1 = df[y_variable][df[x_group] == labels[combination[0] - 1]]
-        data2 = df[y_variable][df[x_group] == labels[combination[1] - 1]]
-        # Significance
-        U, p = stats.ttest_ind(data1, data2, alternative='two-sided')
-        
-        # Bonferroni correction
-        p_adj = p * len(combinations)
-        print("{} x {:<30}   padj: {:<2}  p-val: {:<10}".format(
-            labels[combination[0] - 1],
-            labels[combination[1] - 1],
-            p_adj,
-            p
-        ))
-
-        if p_adj < 0.05:
-            significant_combinations.append([combination, p_adj])
-        else:
-            # significant_combinations.append([combination, p_adj])
-            continue
 
     # Individual bar plots
     for i, cond in enumerate(color_dic):
@@ -301,7 +280,7 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
         std = np.std(data_to_plot)
 
         # Plot bar with thicker edges
-        bar = axs.bar(i + 1, mean, color=colors[i],width=bar_width, edgecolor=bar_edge_color,linewidth=bar_edge_width)
+        axs.bar(i + 1, mean, color=colors[i],width=bar_width, edgecolor=bar_edge_color,linewidth=bar_edge_width)
         
         # Plot error bars with thicker edges
         plt.errorbar(i + 1, mean, yerr=std, fmt='none', ecolor=bar_edge_color, elinewidth=errorbar_width, capsize=5, capthick=errorbar_width)
@@ -311,51 +290,29 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
         print("{:>10} mean: {:>45}".format(cond, mean))
 
         # Individual points with jitter
-        # x_jittered = [i + 1 + (jitter * (2 * (random.random() - 0.5))) for _ in data_to_plot]
-        # plt.scatter(x_jittered, data_to_plot, color=colors[i], alpha=1, s=point_size, edgecolors='black', zorder=3)
+        if scatter:
+            x_jittered = [i + 1 + (jitter * (2 * (random.random() - 0.5))) for _ in data_to_plot]
+            plt.scatter(x_jittered, data_to_plot, color=colors[i], alpha=1, s=point_size, edgecolors='black', zorder=3)
 
-    # Adjust x-ticks
-    axs.set_xticks(range(1, len(labels) + 1))
-    axs.set_xticklabels(labels, rotation=label_rotation, ha='center')
 
-    # Add signif bars
-    bottom, top = plt.ylim()
-    y_range = top - bottom
-    for i, significant_combination in enumerate(significant_combinations):
-        x1 = significant_combination[0][0]
-        x2 = significant_combination[0][1]
-        level = len(significant_combinations) - i
-        bar_height = (y_range * 0.07 * level) + top + 0.4
-        bar_tips = bar_height - (y_range * 0.02)
-        plt.plot(
-            [x1, x1, x2, x2],
-            [bar_tips, bar_height, bar_height, bar_tips], lw=bar_edge_width, c='k'
-        )
-        p = significant_combination[1]
-        if p < 0.001:
-            sig_symbol = '***'
-        elif p < 0.01:
-            sig_symbol = '**'
-        elif p < 0.05:
-            sig_symbol = '*'
-        else:
-            # sig_symbol = "ns"
-            continue
-        text_height = bar_height + (y_range * 0.01)
-        plt.text((x1 + x2) * 0.5, text_height, sig_symbol, ha='center', va='bottom', c='k', weight='bold', size=bar_edge_width*7)
-
+    add_significance_bars(df, x_group, y_variable, labels, axs,fontsize=fontsize)
+   
     # Customization
     axs.spines[['right', 'top']].set_visible(False)
-    # axs.spines['bottom'].set_linewidth(2)  
-    # axs.spines['left'].set_linewidth(2) 
-    plt.xlabel(x_label, fontsize=20)
-    plt.ylabel(y_label, fontsize=20)
+    axs.spines['bottom'].set_linewidth(2)  
+    axs.spines['left'].set_linewidth(2) 
+    # Adjust x-ticks
+    axs.set_xticks(range(1, len(labels) + 1))
+    axs.set_xticklabels(labels, rotation=label_rotation, ha='center',weight='bold',fontsize=fontsize-5)
+    plt.yticks(fontsize=fontsize,weight=fw)
+    plt.xlabel(x_label, fontsize=fontsize, weight='bold')
+    plt.ylabel(y_label, fontsize=fontsize, weight='bold')
     plt.title(title, loc=title_loc, fontsize=title_size)
     plt.show()
 
     return fig, axs
 
-def boxplot_delice(df, x_group, y_variable, y_label=None,x_label=None,fontsize=16, palette="PuRd", colors=None, bar_width=0.5,sbars=None, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2):
+def boxplot_delice(df, x_group, y_variable, y_label=None,x_label=None,fontsize=16, palette="PuRd", colors=None, bar_width=0.5,sbars=None, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2,fw='bold'):
     if y_label is None:
         y_label = y_variable
     if x_label is None:
@@ -422,40 +379,18 @@ def boxplot_delice(df, x_group, y_variable, y_label=None,x_label=None,fontsize=1
 
     # Adjust x-ticks
     axs.set_xticks(range(1, len(labels) + 1))
-    axs.set_xticklabels(labels, rotation=label_rotation, ha='center')
+    axs.set_yticklabels(fontsize=fontsize-5)
+    plt.yticks(fontsize=fontsize,weight=fw)
 
     # Add signif bars
     if sbars:
-        bottom, top = plt.ylim()
-        y_range = top - bottom
-        for i, significant_combination in enumerate(significant_combinations):
-            x1 = significant_combination[0][0]
-            x2 = significant_combination[0][1]
-            level = len(significant_combinations) - i
-            bar_height = (y_range * 0.07 * level) + top + 0.4
-            bar_tips = bar_height - (y_range * 0.02)
-            plt.plot(
-                [x1, x1, x2, x2],
-                [bar_tips, bar_height, bar_height, bar_tips], lw=bar_edge_width, c='k'
-            )
-            p = significant_combination[1]
-            if p < 0.001:
-                sig_symbol = '***'
-            elif p < 0.01:
-                sig_symbol = '**'
-            elif p < 0.05:
-                sig_symbol = '*'
-            else:
-                # sig_symbol = "ns"
-                continue
-            text_height = bar_height + (y_range * 0.01)
-            plt.text((x1 + x2) * 0.5, text_height, sig_symbol, ha='center', va='bottom', c='k', weight='bold', size=bar_edge_width*7)
+        add_significance_bars(df, x_group, y_variable, labels, axs,fontsize=fontsize)
 
     # Customization
     # axs.spines[['right', 'top']].set_visible(False)
-    # axs.spines['bottom'].set_linewidth(2)  
-    # axs.spines['left'].set_linewidth(2) 
-    plt.xlabel(x_label,fontsize=fontsize)
+    axs.spines['bottom'].set_linewidth(2)  
+    axs.spines['left'].set_linewidth(2) 
+    plt.xlabel(x_label,fontsize=fontsize-5)
     plt.ylabel(y_label,fontsize=fontsize)
     plt.title(title, loc=title_loc, fontsize=title_size)
     plt.show()
