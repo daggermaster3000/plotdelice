@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-def prepare_data(df, x_group, y_variable, palette,colors):
+def prepare_data(df, x_group, 
+                  palette,colors):
     color_map = sns.color_palette(palette, n_colors=len(np.unique(df[x_group])))
     if colors:
         color_dic = {cond: color for cond, color in zip(np.unique(df[x_group]), colors)}
@@ -14,6 +15,17 @@ def prepare_data(df, x_group, y_variable, palette,colors):
         color_dic = {cond: color for cond, color in zip(np.unique(df[x_group]), color_map)}
     labels = [i for i in color_dic]
     colors = [i for i in color_dic.values()]
+    return color_dic, labels, colors
+
+def prepare_data_colorby(df, x_group, palette, colors, colorby):
+    if colors is None:
+        unique_colors = df[colorby].unique()
+        color_palette = sns.color_palette(palette, len(unique_colors))
+        color_dic = {k: color_palette[i] for i, k in enumerate(unique_colors)}
+    else:
+        color_dic = {k: colors[i] for i, k in enumerate(df[colorby].unique())}
+    labels = df[colorby].unique()
+    colors = [color_dic[val] for val in df[colorby]]
     return color_dic, labels, colors
 
 def plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width, violin_edge_color, point_size, jitter,figsize=None,fontsize=20,fw='bold'):
@@ -44,6 +56,26 @@ def plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width
     plt.yticks(fontsize=fontsize,weight=fw)
     return fig, axs
 
+def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=None,fontsize=20,fw='bold'):
+    
+    if figsize:
+        fig, axs = plt.subplots(figsize=figsize)
+    else:
+        fig, axs = plt.subplots()
+    
+    for label in labels:
+        print(label)
+        subset = df[df[colorby] == label]
+        sns.scatterplot(x=subset[x_group] ,
+                        y=subset[y_variable],
+                        hue=subset[colorby],
+                        palette=color_dic,
+                        s=point_size,
+                        edgecolor="black",
+                        ax=axs,
+                        legend='auto')
+    
+    return fig, axs
 
 def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
     ls = list(range(1, len(labels) + 1))
@@ -77,7 +109,7 @@ def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
         x1 = significant_combination[0][0]
         x2 = significant_combination[0][1]
         level = len(significant_combinations) - i
-        bar_height = (y_range * 0.2 * level) + top + 0.4
+        bar_height = (y_range * 0.4 * level) + top 
         bar_tips = bar_height - (y_range * 0.02)
 
         p = significant_combination[1]
@@ -105,7 +137,7 @@ def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, 
     except:
         pass
 
-    color_dic, labels, colors = prepare_data(df, x_group, y_variable, palette,colors)
+    color_dic, labels, colors = prepare_data(df, x_group, palette,colors)
     fig, axs = plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width, violin_edge_color, point_size, jitter,figsize=figsize,fontsize=fontsize,fw=fw)
     add_significance_bars(df, x_group, y_variable, labels, axs,fontsize=fontsize)
           
@@ -117,10 +149,35 @@ def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, 
     plt.xticks(range(1, len(color_dic) + 1))
     plt.xlabel(xlabel, fontsize=fontsize,weight=fw)
     plt.ylabel(y_label, fontsize=fontsize,weight=fw)
-    plt.title(title, loc=title_loc, fontsize=title_size)
+    plt.title(title, loc=title_loc, fontsize=title_size, weight=fw)
     plt.show()
 
     return fig, axs
+
+def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10, colors=None, x_label=None, figsize=None, fontsize=20, fw='bold'):
+    if y_label is None:
+        y_label = y_variable
+    if x_label is None:
+        x_label = x_group
+    try:
+        df = df.sort_values(by=x_group, ascending=False)
+    except:
+        pass
+
+    color_dic, labels, colors = prepare_data_colorby(df, x_group, palette, colors, colorby)
+    fig, ax = plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=figsize, fontsize=fontsize, fw=fw)
+
+    # Change the line weight
+    ax.spines['bottom'].set_linewidth(2)
+    ax.spines['left'].set_linewidth(2)
+    ax.spines[['right', 'top']].set_visible(False)
+    #plt.xticks(range(len(labels)), labels)
+    plt.xlabel(x_label, fontsize=fontsize, weight=fw)
+    plt.ylabel(y_label, fontsize=fontsize, weight=fw)
+    plt.title(title, loc=title_loc, fontsize=title_size, weight=fw)
+    plt.show()
+
+    return fig, ax
 
 def multiplot_delice(df,x_group,x_variable,y_variable,violin_width=0.85,y_label=None,x_label=None,palette="PuRd",violin_edge_color="black",point_size=10,jitter=0.05,title=None,title_loc="left",title_size=10,offset_f=0.5,spacing=2,plottype='box'):
     if y_label == None:
@@ -307,7 +364,7 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
     plt.yticks(fontsize=fontsize,weight=fw)
     plt.xlabel(x_label, fontsize=fontsize, weight='bold')
     plt.ylabel(y_label, fontsize=fontsize, weight='bold')
-    plt.title(title, loc=title_loc, fontsize=title_size)
+    plt.title(title, loc=title_loc, fontsize=title_size,weight=fw)
     plt.show()
 
     return fig, axs
