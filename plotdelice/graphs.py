@@ -5,6 +5,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import statsmodels.api as sm
 
 def prepare_data(df, x_group, 
                   palette,colors):
@@ -56,15 +57,43 @@ def plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width
     plt.yticks(fontsize=fontsize,weight=fw)
     return fig, axs
 
-def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=None,fontsize=20,fw='bold'):
+def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=None,fontsize=20,fw='bold',add_regression=None):
     
     if figsize:
         fig, axs = plt.subplots(figsize=figsize)
     else:
         fig, axs = plt.subplots()
-    
+    if add_regression=='linear':
+        x_with_const = sm.add_constant(df[x_group])
+        model = sm.OLS(df[y_variable], x_with_const).fit()
+        r_squared = model.rsquared
+        print("R^2: ",r_squared)
+        sns.regplot(
+            x=df[x_group],
+            y=df[y_variable],
+            scatter=False,
+            ax=axs,
+            color='gray',
+            label=f"$R^2={r_squared:.2f}$",
+            
+        )
+    if add_regression=='logx':
+        x_with_const = sm.add_constant(df[x_group])
+        model = sm.OLS(df[y_variable], np.log(x_with_const)).fit()
+        r_squared = model.rsquared
+        print("R^2: ",r_squared)
+        sns.regplot(
+            x=df[x_group],
+            y=df[y_variable],
+            scatter=False,
+            ax=axs,
+            color='gray',
+            logx=True,
+            label=f"$R^2={r_squared:.2f}$"   
+        )
+
     for label in labels:
-        print(label)
+        
         subset = df[df[colorby] == label]
         sns.scatterplot(x=subset[x_group] ,
                         y=subset[y_variable],
@@ -73,7 +102,11 @@ def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size,
                         s=point_size,
                         edgecolor="black",
                         ax=axs,
-                        legend='auto')
+                        legend='auto',
+                        )
+        
+    
+
     
     return fig, axs
 
@@ -154,7 +187,7 @@ def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, 
 
     return fig, axs
 
-def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10, colors=None, x_label=None, figsize=None, fontsize=20, fw='bold'):
+def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10, colors=None, x_label=None, figsize=None, fontsize=20, fw='bold', add_regression=True):
     if y_label is None:
         y_label = y_variable
     if x_label is None:
@@ -165,13 +198,15 @@ def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_la
         pass
 
     color_dic, labels, colors = prepare_data_colorby(df, x_group, palette, colors, colorby)
-    fig, ax = plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=figsize, fontsize=fontsize, fw=fw)
+    fig, ax = plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=figsize, fontsize=fontsize, fw=fw, add_regression=add_regression)
 
     # Change the line weight
     ax.spines['bottom'].set_linewidth(2)
     ax.spines['left'].set_linewidth(2)
     ax.spines[['right', 'top']].set_visible(False)
-    #plt.xticks(range(len(labels)), labels)
+    
+    plt.yticks(fontsize=fontsize-5,weight=fw)
+    plt.xticks(fontsize=fontsize-5,weight=fw)
     plt.xlabel(x_label, fontsize=fontsize, weight=fw)
     plt.ylabel(y_label, fontsize=fontsize, weight=fw)
     plt.title(title, loc=title_loc, fontsize=title_size, weight=fw)
@@ -362,6 +397,7 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
     axs.set_xticks(range(1, len(labels) + 1))
     axs.set_xticklabels(labels, rotation=label_rotation, ha='center',weight='bold',fontsize=fontsize-5)
     plt.yticks(fontsize=fontsize,weight=fw)
+    
     plt.xlabel(x_label, fontsize=fontsize, weight='bold')
     plt.ylabel(y_label, fontsize=fontsize, weight='bold')
     plt.title(title, loc=title_loc, fontsize=title_size,weight=fw)
