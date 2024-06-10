@@ -1,18 +1,24 @@
 # plotdelice
-A collection of functions to plot old school style graphs
+A collection of functions to plot old school style graphs with significance bars.
 
+## Gallery
+*Violin plot*
 ```python
-from plotdelice.graphs import violinplot_delice, barplot_delice, multiplot_delice
+from plotdelice.graphs import violinplot_delice
+import pandas as pd
+
+df = pd.read_csv("path_to_your_file.csv")
 x_group = "genotype"
 y_variable = "angle"
-violin_width = 0.8
 y_label = r'Somite Angle [°]'
 
-violinplot_delice(df,x_group,y_variable,violin_width=violin_width,y_label=y_label,palette="Greens_d",point_size=40,jitter=0.09,title="",title_size = 50)
+violinplot_delice(df,x_group,y_variable,violin_width=0.8,y_label=y_label,palette="Greens_d",point_size=40,jitter=0.09)
 ```
+
+
 ![alt text](assets/image.png)
-![alt text](assets/image1.png)
-# TODO
-- Add more than the t-test
-- Improve multilevel plotting
-- Refactor the code
+
+*Scatter plot*
+*Custom marker plot*
+*Multilevel plot*
+

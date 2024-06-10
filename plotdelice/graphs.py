@@ -532,11 +532,12 @@ def markerplot_delice(pcadf,x_var,y_var,colorby,svgcol, title='',palette='Blues'
     - fw: Font weight for the labels and title
     - outline_thickness: Thickness of the marker outlines
     """
+    pcadf = pcadf.sort_values(by=colorby)
     # Generate a colormap
     cmap = sns.color_palette(palette, n_colors=len(np.unique(pcadf[colorby])))
     
     # Create a mapping from labels to colors
-    unique_labels = pcadf[colorby].unique()
+    unique_labels = np.unique(pcadf[colorby])
     label_to_color = {cond: color for cond, color in zip(unique_labels, cmap)}
 
     # Create a plot
@@ -550,8 +551,8 @@ def markerplot_delice(pcadf,x_var,y_var,colorby,svgcol, title='',palette='Blues'
         axs.plot(x, y, marker=smiley, color=color, markersize=markersize)
 
     if add_regression=='linear':
-        x_with_const = sm.add_constant(df[x_var])
-        model = sm.OLS(df[y_var], x_with_const).fit()
+        x_with_const = sm.add_constant(pcadf[x_var])
+        model = sm.OLS(pcadf[y_var], x_with_const).fit()
         r_squared = model.rsquared
         print("R^2: ",r_squared)
         sns.regplot(
@@ -597,4 +598,5 @@ def markerplot_delice(pcadf,x_var,y_var,colorby,svgcol, title='',palette='Blues'
     plt.ylabel(y_var, fontsize=fontsize, weight=fw)
     plt.title(title, weight=fw)
 
-    plt.show()
+    # plt.show()
+    return fig, axs
