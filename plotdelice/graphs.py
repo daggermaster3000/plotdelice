@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
+from svgpath2mpl import parse_path
+from matplotlib.patches import Patch
 
 def prepare_data(df, x_group, 
                   palette,colors):
@@ -57,12 +59,13 @@ def plot_violin(df, x_group, y_variable, color_dic, labels, colors, violin_width
     plt.yticks(fontsize=fontsize,weight=fw)
     return fig, axs
 
-def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=None,fontsize=20,fw='bold',add_regression=None):
+def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=None,fontsize=20,fw='bold',add_regression=None,marker=None):
     
     if figsize:
         fig, axs = plt.subplots(figsize=figsize)
     else:
         fig, axs = plt.subplots()
+
     if add_regression=='linear':
         x_with_const = sm.add_constant(df[x_group])
         model = sm.OLS(df[y_variable], x_with_const).fit()
@@ -91,24 +94,51 @@ def plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size,
             logx=True,
             label=f"$R^2={r_squared:.2f}$"   
         )
-
-    for label in labels:
-        
-        subset = df[df[colorby] == label]
-        sns.scatterplot(x=subset[x_group] ,
-                        y=subset[y_variable],
-                        hue=subset[colorby],
-                        palette=color_dic,
-                        s=point_size,
-                        edgecolor="black",
-                        ax=axs,
-                        legend='auto',
-                        )
-        
     
+    if marker != None:
+        
+        for label in labels:
+            subset = df[df[colorby] == label]
+            
+            mscatter(x=subset[x_group] ,
+                    y=subset[y_variable],
+                    c=color_dic[subset[colorby]],
+                    ax=axs,
+                    m=subset[marker],
+                    s=point_size
+                    )
+    else:
+        for label in labels:
+            subset = df[df[colorby] == label]
+            sns.scatterplot(x=subset[x_group] ,
+                            y=subset[y_variable],
+                            hue=subset[colorby],
+                            palette=color_dic,
+                            s=point_size,
+                            edgecolor="black",
+                            ax=axs,
+                            legend='auto',
+                            )
 
     
     return fig, axs
+
+def mscatter(x,y, ax=None, m=None, **kw):
+    import matplotlib.markers as mmarkers
+    ax = ax or plt.gca()
+    sc = ax.scatter(x,y,**kw)
+    if (m is not None) and (len(m)==len(x)):
+        paths = []
+        for marker in m:
+            if isinstance(marker, mmarkers.MarkerStyle):
+                marker_obj = marker
+            else:
+                marker_obj = mmarkers.MarkerStyle(marker)
+            path = marker_obj.get_path().transformed(
+                        marker_obj.get_transform())
+            paths.append(path)
+        sc.set_paths(paths)
+    return sc
 
 def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
     ls = list(range(1, len(labels) + 1))
@@ -187,7 +217,7 @@ def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, 
 
     return fig, axs
 
-def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10, colors=None, x_label=None, figsize=None, fontsize=20, fw='bold', add_regression=True):
+def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10, colors=None, x_label=None, figsize=None, fontsize=20, fw='bold', add_regression=True,marker=None):
     if y_label is None:
         y_label = y_variable
     if x_label is None:
@@ -197,8 +227,8 @@ def scatterplot_delice(df, x_group, y_variable, colorby, violin_width=0.85, y_la
     except:
         pass
 
-    color_dic, labels, colors = prepare_data_colorby(df, x_group, palette, colors, colorby)
-    fig, ax = plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=figsize, fontsize=fontsize, fw=fw, add_regression=add_regression)
+    color_dic, labels, colors = prepare_data_colorby(df, colorby, palette, colors, colorby)
+    fig, ax = plot_scatter(df, x_group, y_variable, color_dic, labels,colorby, point_size, figsize=figsize, fontsize=fontsize, fw=fw, add_regression=add_regression,marker=marker)
 
     # Change the line weight
     ax.spines['bottom'].set_linewidth(2)
@@ -489,3 +519,82 @@ def boxplot_delice(df, x_group, y_variable, y_label=None,x_label=None,fontsize=1
     plt.show()
 
     return fig, axs
+
+def markerplot_delice(pcadf,x_var,y_var,colorby,svgcol, title='',palette='Blues', fontsize=20, fw='bold', outline_thickness=2, figsize=(15,10), markersize=20, add_regression=None):
+    """
+    Plot PCA data points with custom markers and specified properties.
+
+    Parameters:
+    - pcadf: DataFrame containing 'PC 1', 'PC 2', and 'true_label' columns
+    - df: DataFrame containing 'spine coords' column with custom marker shapes
+    - title: Title of the plot
+    - fontsize: Font size for the labels and title
+    - fw: Font weight for the labels and title
+    - outline_thickness: Thickness of the marker outlines
+    """
+    # Generate a colormap
+    cmap = sns.color_palette(palette, n_colors=len(np.unique(pcadf[colorby])))
+    
+    # Create a mapping from labels to colors
+    unique_labels = pcadf[colorby].unique()
+    label_to_color = {cond: color for cond, color in zip(unique_labels, cmap)}
+
+    # Create a plot
+    fig, axs = plt.subplots(figsize=figsize)
+
+    # Plot each data point with custom markers and black outlines
+    for x, y, labels, sc in zip(pcadf[x_var], pcadf[y_var], pcadf[colorby], pcadf[svgcol]):
+        smiley = sc
+        color = label_to_color[labels]
+        smiley.vertices -= smiley.vertices.mean(axis=0)
+        axs.plot(x, y, marker=smiley, color=color, markersize=markersize)
+
+    if add_regression=='linear':
+        x_with_const = sm.add_constant(df[x_var])
+        model = sm.OLS(df[y_var], x_with_const).fit()
+        r_squared = model.rsquared
+        print("R^2: ",r_squared)
+        sns.regplot(
+            x=pcadf[x_var],
+            y=pcadf[y_var],
+            scatter=False,
+            ax=axs,
+            color='gray',
+            label=f"$R^2={r_squared:.2f}$",
+            
+        )
+    if add_regression=='logx':
+        x_with_const = sm.add_constant(pcadf[x_var])
+        model = sm.OLS(pcadf[y_var], np.log(x_with_const)).fit()
+        r_squared = model.rsquared
+        print("R^2: ",r_squared)
+        sns.regplot(
+            x=pcadf[x_var],
+            y=pcadf[y_var],
+            scatter=False,
+            ax=axs,
+            color='gray',
+            logx=True,
+            label=f"$R^2={r_squared:.2f}$"   
+        )
+
+    # Create custom legend
+    handles = [plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=label_to_color[label], markersize=20, label=label) for label in unique_labels]
+    
+    # Add regression line handle if regression is added
+    if add_regression is not None:
+        regression_handle = Patch(color='gray', label=f"$R^2={r_squared:.2f}$")
+        handles.append(regression_handle)
+    axs.legend(handles=handles, title='', frameon=False, prop={'weight': fw})
+
+    # Change the line weight
+    axs.spines['bottom'].set_linewidth(2)
+    axs.spines['left'].set_linewidth(2) 
+    axs.spines[['right', 'top']].set_visible(False)
+    plt.yticks(fontsize=fontsize,weight=fw)
+    plt.xticks(fontsize=fontsize,weight=fw)
+    plt.xlabel(x_var, fontsize=fontsize, weight=fw)
+    plt.ylabel(y_var, fontsize=fontsize, weight=fw)
+    plt.title(title, weight=fw)
+
+    plt.show()
