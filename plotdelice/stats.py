@@ -19,7 +19,7 @@ def check_normality_and_choose_test(df, y_variable, x_group):
         test_used = 'Mann-Whitney U test'
     
     # Print normality test result
-    print(f"Normality test p-value for the entire dataset: {normality_p}")
+    print(f"Normality test p-value for the entire dataset (Shapiro): {normality_p}")
     print(f"Data follows normal distribution: {'Yes' if normal else 'No'}")
     
     return test_used, normal, num_groups
@@ -62,43 +62,41 @@ def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
             # a little trick to match the combinations from tukey_results
             combinations = []
             for x in range(0, len(ls)):
-                print(x)
                 for y in range(x+1,len(ls)):
                     combinations.append((ls[x], ls[y]))
-            print(combinations)
             significant_combinations = [[comb, p] for comb,p in zip(combinations,tukey_results.pvalues)]
-            print(significant_combinations)
             plot_sbars(axs,significant_combinations,fontsize)
             return
        
-    
+    else:
     # For pairwise comparisons
-    ls = list(range(1, len(labels) + 1))
-    combinations = [(ls[x], ls[x + y]) for y in reversed(ls) for x in range((len(ls) - y))]
-    significant_combinations = []
-    
-    for combination in combinations:
+        ls = list(range(1, len(labels) + 1))
+        combinations = [(ls[x], ls[x + y]) for y in reversed(ls) for x in range((len(ls) - y))]
+        significant_combinations = []
+        
+        for combination in combinations:
 
-        # Perform statistical test
-        U, p = perform_statistical_test(df, y_variable, x_group, test_used, labels[combination[0] - 1], labels[combination[1] - 1])
-        print(labels[combination[0] - 1])
-        # Adjust p-values
-        p_adj = p * len(combinations)
-        print("{} vs {} | {}: {} | padj: {:<2}  p-val: {:<10}".format(
-            labels[combination[0] - 1],
-            labels[combination[1] - 1],
-            test_used,
-            "Significant" if p_adj < 0.05 else "Not Significant",
-            p_adj,
-            p
-        ))
+            # Perform statistical test
+            U, p = perform_statistical_test(df, y_variable, x_group, test_used, labels[combination[0] - 1], labels[combination[1] - 1])
+            # Adjust p-values
+            p_adj = p * len(combinations)
+            print("{} vs {} | {}: {} | padj: {:<2}  p-val: {:<10}".format(
+                labels[combination[0] - 1],
+                labels[combination[1] - 1],
+                test_used,
+                "Significant" if p_adj < 0.05 else "Not Significant",
+                p_adj,
+                p
+            ))
 
-        if p_adj < 0.05:
-            significant_combinations.append([combination, p_adj])
-        else:
-            significant_combinations.append([combination, p_adj])
-    
+            if p_adj < 0.05:
+                significant_combinations.append([combination, p_adj])
+            else:
+                significant_combinations.append([combination, p_adj])
+        
         plot_sbars(axs,significant_combinations,fontsize)
+
+        return
 
 def plot_sbars(axs,significant_combinations,fontsize):
     bottom, top = axs.get_ylim()
@@ -111,6 +109,7 @@ def plot_sbars(axs,significant_combinations,fontsize):
         bar_tips = bar_height - (y_range * 0.02)
 
         p = significant_combination[1]
+       
         if p < 0.001:
             sig_symbol = '***'
         elif p < 0.01:
