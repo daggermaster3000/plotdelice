@@ -9,14 +9,15 @@ setup(
         'pandas',
         'matplotlib',
         'seaborn',
-        'scipy'
+        'scipy',
+        'statsmodels',
     ],
     entry_points={
         'console_scripts': [],
     },
-    author='Your Name',
-    author_email='your.email@example.com',
-    description='A package for creating customized  plots',
+    author='Quillan Favey',
+    author_email='quillan.favey@gmail.com',
+    description='A package for creating old school style plots',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
     url='https://github.com/daggermaster3000/plotdelice',  # Replace with your repo URL

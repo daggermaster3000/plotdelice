@@ -1,6 +1,9 @@
 # plotdelice 📊
 A collection of functions to plot old school style graphs with significance bars and automated stat testing (still verify it is the adequate test for your data).
-
+## Install
+```python
+pip install plotdelice
+```
 ## Gallery
 **Violin plot**
 
@@ -26,7 +29,7 @@ violinplot_delice(df,x_group,y_variable,violin_width=0.8,y_label=y_label,palette
 **Scatter plot**
 ![alt text](assets/scatter.png)
 **Custom marker plot**
-```
+```python
 from svgpath2mpl import parse_path
 
 # df['coords'] contains an svg path for each custom marker
