@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='plotdelice',
-    version='0.1',
+    name='PlotDelice',
+    version='0.5',
     packages=find_packages(),
     install_requires=[
         'numpy',

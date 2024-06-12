@@ -2,7 +2,7 @@
 A collection of functions to plot old school style graphs with significance bars and automated stat testing (still verify it is the adequate test for your data).
 ## Install
 ```python
-pip install plotdelice
+pip install PlotDelice
 ```
 ## Gallery
 **Violin plot**
