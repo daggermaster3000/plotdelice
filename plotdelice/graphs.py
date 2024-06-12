@@ -1,13 +1,12 @@
 import seaborn as sns
 import random
-from tabulate import tabulate
 from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
-from svgpath2mpl import parse_path
 from matplotlib.patches import Patch
+from plotdelice.stats import add_significance_bars
 
 def prepare_data(df, x_group, 
                   palette,colors):
@@ -140,57 +139,6 @@ def mscatter(x,y, ax=None, m=None, **kw):
         sc.set_paths(paths)
     return sc
 
-def add_significance_bars(df, x_group, y_variable, labels, axs, fontsize):
-    ls = list(range(1, len(labels) + 1))
-    combinations = [(ls[x], ls[x + y]) for y in reversed(ls) for x in range((len(ls) - y))]
-    significant_combinations = []
-    
-    for combination in combinations:
-        data1 = df[y_variable][df[x_group] == labels[combination[0] - 1]]
-        data2 = df[y_variable][df[x_group] == labels[combination[1] - 1]]
-        U, p = stats.ttest_ind(data1, data2, alternative='two-sided')
-
-        p_adj = p * len(combinations)
-        print("{} {} x {} {:<30} padj: {:<2}  p-val: {:<10}".format(
-            labels[combination[0] - 1],
-            np.mean(data1),
-            labels[combination[1] - 1],
-            np.mean(data1),
-            p_adj,
-            p
-        ))
-
-        if p_adj < 0.05:
-            significant_combinations.append([combination, p_adj])
-        else:
-            significant_combinations.append([combination, p_adj])
-    
-
-    bottom, top = axs.get_ylim()
-    y_range = top - bottom
-    for i, significant_combination in enumerate(significant_combinations):
-        x1 = significant_combination[0][0]
-        x2 = significant_combination[0][1]
-        level = len(significant_combinations) - i
-        bar_height = (y_range * 0.4 * level) + top 
-        bar_tips = bar_height - (y_range * 0.02)
-
-        p = significant_combination[1]
-        if p < 0.001:
-            sig_symbol = '***'
-        elif p < 0.01:
-            sig_symbol = '**'
-        elif p < 0.05:
-            sig_symbol = '*'
-        else:
-            sig_symbol = "ns"
-        text_height = bar_height + (y_range * 0.01)
-        if p<0.05:
-            axs.text((x1 + x2) * 0.5, text_height, sig_symbol, ha='center', va='bottom', c='k', weight='bold',fontsize=fontsize/1.15)
-            axs.plot(
-                [x1, x1, x2, x2],
-                [bar_tips, bar_height, bar_height, bar_tips], lw=2, c='k'
-            )
 
 def violinplot_delice(df, x_group, y_variable, violin_width=0.85, y_label=None, palette="PuRd", violin_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,colors=None, xlabel=None,figsize=None,fontsize=20,fw='bold'):
     if y_label is None:
@@ -374,7 +322,7 @@ def multiplot_delice(df,x_group,x_variable,y_variable,violin_width=0.85,y_label=
     
     return fig,axs
 
-def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="PuRd", colors=None, bar_width=0.5, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2,figsize=None,fontsize=20,scatter=None,fw='bold'):
+def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="PuRd", colors=None, bar_width=0.5, bar_edge_color="black", point_size=10, jitter=0.05, title=None, title_loc="left", title_size=10,label_rotation=45, bar_edge_width=3,errorbar_width=2,figsize=None,fontsize=20,scatter=True,fw='bold',stats=True):
     
     if figsize:
         fig, axs = plt.subplots(figsize=figsize)
@@ -416,8 +364,8 @@ def barplot_delice(df, x_group, y_variable, y_label=None,x_label=None, palette="
             x_jittered = [i + 1 + (jitter * (2 * (random.random() - 0.5))) for _ in data_to_plot]
             plt.scatter(x_jittered, data_to_plot, color=colors[i], alpha=1, s=point_size, edgecolors='black', zorder=3)
 
-
-    add_significance_bars(df, x_group, y_variable, labels, axs,fontsize=fontsize)
+    if stats:
+        add_significance_bars(df, x_group, y_variable, labels, axs,fontsize=fontsize)
    
     # Customization
     axs.spines[['right', 'top']].set_visible(False)
